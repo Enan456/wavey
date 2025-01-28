@@ -1,0 +1,16 @@
+# Requirements for the YOLO + Streamlit-based application
+
+streamlit==1.24.0
+opencv-python==4.8.0.76
+pillow==9.5.0
+pyserial==3.5
+ultralytics==8.0.50
+streamlit-extras==0.3.1
+
+# If you plan to run YOLO on GPU, ensure PyTorch is installed accordingly.
+# Often ultralytics will install a CPU version of torch by default,
+# but you can pin a specific version here if needed, for example:
+# torch==2.0.1+cu118
+# torchvision==0.15.2+cu118
+# torchaudio==2.0.1+cu118
+# -f https://download.pytorch.org/whl/cu118
