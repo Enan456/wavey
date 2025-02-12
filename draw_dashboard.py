@@ -9,32 +9,71 @@ from utils.robot_ops import RobotArmController
 # 1. Configuration / Constants
 #######################################
 
-# LARGER CANVAS width/height in Streamlit
+# Default values
 CANVAS_WIDTH = 800
 CANVAS_HEIGHT = 600
-
-# Suppose your paper area in the robot's coordinate system is 300 mm x 225 mm 
-# (just as an example).
-# We'll scale drawn coordinates [0..CANVAS_WIDTH] to [0..300 mm], etc.
-# Adjust these to match your actual robot workspace & offsets.
 SCALE_X = 300 / CANVAS_WIDTH
 SCALE_Y = 225 / CANVAS_HEIGHT
-
-# Where do we place the origin (0,0) of the drawing in the robot's coordinate system?
-# For example, top-left corner might be X=100, Y=100, Z=some safe height
 DRAW_ORIGIN_X = 100
 DRAW_ORIGIN_Y = 100
-
-# Z positions for pen "up" vs. "down" (touching paper)
-# Adjust these so the pen tip touches (z_down) or lifts away (z_up).
 Z_UP = 80
 Z_DOWN = 50
-
-# The orientation of the end effector, if applicable (e.g., rad)
 T_ANGLE = 1.57
 
-# If picking up an object in blank space, at what Z do we attempt to pick it up?
-Z_PICKUP = 40  # Put your realistic approach for picking up an object
+# Streamlit UI
+st.title("Robot Arm Configuration")
+
+st.sidebar.header("Canvas Settings")
+CANVAS_WIDTH = st.sidebar.number_input("Canvas Width", value=CANVAS_WIDTH)
+CANVAS_HEIGHT = st.sidebar.number_input("Canvas Height", value=CANVAS_HEIGHT)
+
+st.sidebar.header("Scaling Settings")
+SCALE_X = st.sidebar.number_input("Scale X", value=SCALE_X)
+SCALE_Y = st.sidebar.number_input("Scale Y", value=SCALE_Y)
+
+st.sidebar.header("Drawing Origin")
+DRAW_ORIGIN_X = st.sidebar.number_input("Draw Origin X", value=DRAW_ORIGIN_X)
+DRAW_ORIGIN_Y = st.sidebar.number_input("Draw Origin Y", value=DRAW_ORIGIN_Y)
+
+st.sidebar.header("Pen Positions")
+Z_UP = st.sidebar.number_input("Pen Up Position (Z)", value=Z_UP)
+Z_DOWN = st.sidebar.number_input("Pen Down Position (Z)", value=Z_DOWN)
+
+st.sidebar.header("End Effector Orientation")
+T_ANGLE = st.sidebar.number_input("End Effector Angle (rad)", value=T_ANGLE)
+
+# Display current configuration
+st.write("## Current Configuration")
+st.write(f"Canvas Width: {CANVAS_WIDTH}")
+st.write(f"Canvas Height: {CANVAS_HEIGHT}")
+st.write(f"Scale X: {SCALE_X}")
+st.write(f"Scale Y: {SCALE_Y}")
+st.write(f"Draw Origin X: {DRAW_ORIGIN_X}")
+st.write(f"Draw Origin Y: {DRAW_ORIGIN_Y}")
+st.write(f"Pen Up Position (Z): {Z_UP}")
+st.write(f"Pen Down Position (Z): {Z_DOWN}")
+st.write(f"End Effector Angle (rad): {T_ANGLE}")
+
+# Initialize RobotArmController with the current configuration
+robot_arm = RobotArmController(
+    width=CANVAS_WIDTH,
+    height=CANVAS_HEIGHT,
+    scale_x=SCALE_X,
+    scale_y=SCALE_Y,
+    origin_x=DRAW_ORIGIN_X,
+    origin_y=DRAW_ORIGIN_Y,
+    z_up=Z_UP,
+    z_down=Z_DOWN,
+    angle=T_ANGLE
+)
+
+# Add a button to test the configuration
+if st.button("Test Configuration"):
+    st.write("Testing configuration...")
+    # Add your testing logic here
+    # For example, move the robot arm to the origin
+    robot_arm.move_to(DRAW_ORIGIN_X, DRAW_ORIGIN_Y, Z_UP)
+    st.write("Configuration tested successfully.")
 
 ###########################################
 # 2. Helper functions to parse and send data

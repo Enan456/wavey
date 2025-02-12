@@ -151,7 +151,7 @@ def main():
 
         st.session_state.yolo_model = YOLOModel(
             model_path=MODEL_PATH,
-            device="cuda",     # or "cpu"
+            device="cpu",     # or "cpu"
             score_thr=SCORE_THRESHOLD
         )
         st.success("YOLO model loaded successfully!")
