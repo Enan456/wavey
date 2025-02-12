@@ -1,8 +1,7 @@
 import json
 import serial
 from serial.tools import list_ports
-import streamlit as st
-
+import time
 class RobotArmController:
     """
     Encapsulates the logic for detecting and controlling the robotic arm via serial port.
@@ -37,9 +36,10 @@ class RobotArmController:
         try:
             with serial.Serial(self.port, baudrate=self.baudrate, timeout=self.timeout) as ser:
                 ser.write((json.dumps(command) + "\n").encode())
-            st.success(f"Command sent: {command}")
+            #st.success(f"Command sent: {command}")
         except Exception as e:
-            st.error(f"Failed to send command: {e}")
+            #st.error(f"Failed to send command: {e}")
+            print(f"Failed to send command: {e}")
 
     # ------------------------
     # High-level control APIs
@@ -103,3 +103,18 @@ class RobotArmController:
         self.send_command(command_start)
         self.send_command(command_end)
 
+#run test if this file is run
+if __name__ == "__main__":
+    robot_arm = RobotArmController()
+    print(robot_arm.is_port_available())
+    robot_arm.set_motor_angles({1: 90, 2: 0, 3: 0, 4: 0})
+    time.sleep(4)
+    robot_arm.open_hand()
+    time.sleep(2)
+    robot_arm.close_hand()
+    time.sleep(2)
+    robot_arm.point_to_angle()
+    time.sleep(2)
+    robot_arm.pick_up()
+    time.sleep(2)
+    robot_arm.draw_on_table()

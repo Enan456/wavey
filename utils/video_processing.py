@@ -94,3 +94,40 @@ def get_annotated_frame(camera_idx, camera_manager, detection_model):
         return None
     annotated_frame = detection_model.run_inference(frame)
     return Image.fromarray(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB))
+
+
+#test the video processing only
+if __name__ == "__main__":
+    # Initialize and store a YOLO model (trained on COCO)
+    if "yolo_model" not in st.session_state:
+        # Default YOLO model on COCO (yolov8n.pt, yolov8s.pt, etc.)
+        MODEL_PATH = "yolov8n.pt"  # or an absolute path
+        SCORE_THRESHOLD = 0.3
+
+        st.session_state.yolo_model = YOLOModel(
+            model_path=MODEL_PATH,
+            device="cpu",     # or "cpu"
+            score_thr=SCORE_THRESHOLD
+        )
+        st.success("YOLO model loaded successfully!")
+
+    
+    #process the video and print the result to console
+    camera_manager = CameraManager()
+    camera_manager.open_capture(0)
+    frame = get_annotated_frame(0, camera_manager, st.session_state.yolo_model)
+    print(frame)
+    #test all the functions
+    print(camera_manager.cameras)
+    print(camera_manager.caps)
+    print(camera_manager.get_frame(0)) 
+    
+    print(st.session_state.yolo_model)
+    print(st.session_state.yolo_model.model)
+    print(st.session_state.yolo_model.score_thr)
+    print(st.session_state.yolo_model.run_inference(frame))
+    print(st.session_state.yolo_model.get_colours(0))
+    print(get_annotated_frame(0, camera_manager, st.session_state.yolo_model))
+    
+    
+    
