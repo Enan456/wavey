@@ -1,34 +1,27 @@
+"""
+Main dashboard for robot arm control with dual camera feeds and YOLO detection.
+"""
+
 import streamlit as st
-from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 # Local imports
+import config
 from utils.robot_ops import RobotArmController
 from utils.video_processing import CameraManager, YOLOModel, get_annotated_frame
+from utils.ui_config import apply_wide_layout, display_robot_status, display_camera_status
 
-# For partial refresh (if using some extension like st.fragment):
+# For partial refresh
 try:
     from streamlit_extras.fragment import fragment
 except ImportError:
-    # If you don't have a specialized fragment decorator,
-    # you can just define a no-op decorator for demonstration
+    # Fallback no-op decorator
     def fragment(run_every=None):
         def decorator(func):
             return func
         return decorator
 
-################################
-# CUSTOM CSS to widen the page
-################################
-st.markdown(
-    """
-    <style>
-    .block-container {
-        max-width: 90% !important; /* Widen layout to ~90% */
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Apply wide layout
+apply_wide_layout()
 
 #################################
 # PARTIAL REFRESH FOR DUAL FEEDS
@@ -87,8 +80,8 @@ def show_robotic_arm_controls(robot_arm):
     for motor_id in range(1, 5):
         motor_angles[motor_id] = st.slider(
             f"Motor {motor_id} Angle (degrees)",
-            min_value=-180,
-            max_value=180,
+            min_value=config.MOTOR_ANGLE_MIN,
+            max_value=config.MOTOR_ANGLE_MAX,
             value=0,
             key=f"motor_{motor_id}"
         )
@@ -100,11 +93,11 @@ def show_robotic_arm_controls(robot_arm):
 
     # Open/Close Hand
     st.markdown("#### Open/Close Hand")
-    open_angle = st.number_input("Open Angle (radians)", value=3.14, key="open_angle")
+    open_angle = st.number_input("Open Angle (radians)", value=config.GRIPPER_OPEN_ANGLE, key="open_angle")
     if st.button("Run Open", key="open_hand"):
         robot_arm.open_hand(open_angle)
 
-    close_angle = st.number_input("Close Angle (radians)", value=1.2, key="close_angle")
+    close_angle = st.number_input("Close Angle (radians)", value=config.GRIPPER_CLOSE_ANGLE, key="close_angle")
     if st.button("Run Close", key="close_hand"):
         robot_arm.close_hand(close_angle)
 
@@ -145,16 +138,12 @@ def main():
 
     # Initialize and store a YOLO model (trained on COCO)
     if "yolo_model" not in st.session_state:
-        # Default YOLO model on COCO (yolov8n.pt, yolov8s.pt, etc.)
-        MODEL_PATH = "yolov8n.pt"  # or an absolute path
-        SCORE_THRESHOLD = 0.3
-
         st.session_state.yolo_model = YOLOModel(
-            model_path=MODEL_PATH,
-            device="cpu",     # or "cpu"
-            score_thr=SCORE_THRESHOLD
+            model_path=config.YOLO_MODEL_PATH,
+            device=config.YOLO_DEVICE,
+            score_thr=config.YOLO_SCORE_THRESHOLD
         )
-        st.success("YOLO model loaded successfully!")
+        st.success("✅ YOLO model loaded successfully!")
 
     # Layout: 20% controls / 80% cameras
     col_controls, col_cams = st.columns([0.2, 0.8])

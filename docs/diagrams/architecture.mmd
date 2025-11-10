@@ -1,0 +1,105 @@
+graph TB
+    subgraph Browser["🌐 Web Browser"]
+        UI[Web UI - HTML/CSS/JS]
+        SocketClient[Socket.IO Client]
+        VideoDisplay[Video Display Canvas]
+        DrawingCanvas[Fabric.js Drawing Canvas]
+        Controls[Robot Control Panel]
+    end
+
+    subgraph FlaskServer["🖥️ Flask Server (Python)"]
+        FlaskApp[Flask Application]
+        SocketIOServer[Flask-SocketIO Server]
+
+        subgraph Routes["📍 Routes"]
+            PageRoutes[Page Routes]
+            APIRoutes[REST API Routes]
+        end
+
+        subgraph Services["⚙️ Background Services (Threads)"]
+            VideoService[Video Streaming Service<br/>30 FPS per camera]
+            YOLOService[YOLO Inference Service<br/>5 FPS]
+            HandService[Hand Tracking Service<br/>10 FPS]
+            RobotService[Robot Command Service<br/>Serial Queue]
+        end
+
+        subgraph WebSocket["🔌 WebSocket Events"]
+            WSHandlers[Event Handlers]
+        end
+    end
+
+    subgraph Utils["🔧 Utility Modules (Reused from Streamlit)"]
+        RobotOps[robot_ops.py<br/>Robot Control]
+        VideoProc[video_processing.py<br/>Camera & YOLO]
+        HandTrack[hand_tracking.py<br/>Pose Detection]
+        CanvasUtils[canvas_utils.py<br/>Coordinate Transform]
+        Config[config.py<br/>Configuration]
+    end
+
+    subgraph Hardware["🔌 Hardware"]
+        Camera1[USB Camera 1]
+        Camera2[USB Camera 2]
+        RobotArm[Robot Arm<br/>USB Serial]
+    end
+
+    subgraph Models["🧠 AI Models"]
+        YOLOv8[YOLOv8n.pt<br/>Object Detection]
+        YOLOPose[YOLOv8n-pose.pt<br/>Hand Tracking]
+    end
+
+    %% Browser to Flask connections
+    UI <-->|HTTP Requests| FlaskApp
+    SocketClient <-->|WebSocket| SocketIOServer
+
+    %% Flask internal connections
+    FlaskApp --> PageRoutes
+    FlaskApp --> APIRoutes
+    SocketIOServer --> WSHandlers
+
+    WSHandlers <--> VideoService
+    WSHandlers <--> YOLOService
+    WSHandlers <--> HandService
+    WSHandlers <--> RobotService
+
+    %% Services to Utils
+    VideoService --> VideoProc
+    YOLOService --> VideoProc
+    HandService --> HandTrack
+    RobotService --> RobotOps
+
+    VideoService --> Config
+    YOLOService --> Config
+    HandService --> Config
+    RobotService --> Config
+
+    %% Utils to Hardware
+    VideoProc --> Camera1
+    VideoProc --> Camera2
+    RobotOps --> RobotArm
+
+    %% Utils to Models
+    VideoProc --> YOLOv8
+    HandTrack --> YOLOPose
+
+    %% Data Flow Labels
+    VideoService -->|"Base64 JPEG<br/>30 FPS"| SocketIOServer
+    YOLOService -->|"Detection JSON<br/>5 FPS"| SocketIOServer
+    HandService -->|"Hand Positions<br/>10 FPS"| SocketIOServer
+    RobotService -->|"Status Updates"| SocketIOServer
+
+    SocketIOServer -->|"Robot Commands"| RobotService
+
+    %% Styling
+    classDef browserClass fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef flaskClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef serviceClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef utilClass fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef hwClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef modelClass fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+
+    class UI,SocketClient,VideoDisplay,DrawingCanvas,Controls browserClass
+    class FlaskApp,SocketIOServer,PageRoutes,APIRoutes,WSHandlers flaskClass
+    class VideoService,YOLOService,HandService,RobotService serviceClass
+    class RobotOps,VideoProc,HandTrack,CanvasUtils,Config utilClass
+    class Camera1,Camera2,RobotArm hwClass
+    class YOLOv8,YOLOPose modelClass

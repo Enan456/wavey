@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Robot Arm Control{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Status Cards -->
+    <div class="status-cards">
+        <div class="card">
+            <div class="card-icon">📹</div>
+            <div class="card-content">
+                <h3>Camera Status</h3>
+                <p id="camera-status">Initializing...</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-icon">🤖</div>
+            <div class="card-content">
+                <h3>Robot Status</h3>
+                <p id="robot-status">Checking...</p>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-icon">🎯</div>
+            <div class="card-content">
+                <h3>Tracking Mode</h3>
+                <p id="tracking-status">Inactive</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Feed Section -->
+    <div class="video-section">
+        <h2>Live Camera Feed</h2>
+        <div class="video-container">
+            <div class="video-wrapper">
+                <h3>Camera 1</h3>
+                <div class="video-frame">
+                    <img id="video-feed-1" src="" alt="Camera 1 Feed">
+                    <div class="video-overlay">
+                        <div class="fps-counter" id="fps-1">0 FPS</div>
+                    </div>
+                    <div class="video-placeholder" id="placeholder-1">
+                        <p>📹 No video feed</p>
+                        <button class="btn btn-primary" onclick="startVideo(0)">Start Camera</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls Section -->
+    <div class="controls-section">
+        <h2>Quick Controls</h2>
+        <div class="control-grid">
+            <button class="btn btn-success" onclick="startVideo(0)">
+                ▶️ Start Video
+            </button>
+            <button class="btn btn-danger" onclick="stopVideo(0)">
+                ⏹️ Stop Video
+            </button>
+            <button class="btn btn-info" onclick="testRobot()">
+                🤖 Test Robot
+            </button>
+            <button class="btn btn-warning" onclick="emergencyStop()">
+                🛑 Emergency Stop
+            </button>
+        </div>
+    </div>
+
+    <!-- Event Log -->
+    <div class="log-section">
+        <h3>Event Log</h3>
+        <div id="event-log" class="log-container">
+            <p class="log-entry">System initialized</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Dashboard-specific JavaScript
+    function startVideo(cameraIndex) {
+        console.log('Starting camera', cameraIndex);
+        socket.emit('start_video', { camera: cameraIndex });
+        addLog('📹 Starting camera ' + cameraIndex);
+        document.getElementById('placeholder-' + (cameraIndex + 1)).style.display = 'none';
+    }
+
+    function stopVideo(cameraIndex) {
+        console.log('Stopping camera', cameraIndex);
+        socket.emit('stop_video', { camera: cameraIndex });
+        addLog('⏹️ Stopping camera ' + cameraIndex);
+    }
+
+    function testRobot() {
+        console.log('Testing robot connection');
+        socket.emit('robot_command', { type: 'test' });
+        addLog('🤖 Testing robot connection');
+    }
+
+    function emergencyStop() {
+        console.log('Emergency stop!');
+        socket.emit('emergency_stop', {});
+        addLog('🛑 EMERGENCY STOP');
+    }
+
+    function addLog(message) {
+        const logContainer = document.getElementById('event-log');
+        const entry = document.createElement('p');
+        entry.className = 'log-entry';
+        entry.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+        logContainer.insertBefore(entry, logContainer.firstChild);
+
+        // Keep only last 20 entries
+        while (logContainer.children.length > 20) {
+            logContainer.removeChild(logContainer.lastChild);
+        }
+    }
+
+    // Listen for video frames
+    socket.on('video_frame', (data) => {
+        const img = document.getElementById('video-feed-' + (data.camera + 1));
+        if (img) {
+            img.src = 'data:image/jpeg;base64,' + data.frame;
+        }
+
+        // Update FPS
+        const fpsElement = document.getElementById('fps-' + (data.camera + 1));
+        if (fpsElement && data.fps) {
+            fpsElement.textContent = data.fps.toFixed(1) + ' FPS';
+        }
+    });
+
+    // Listen for robot status
+    socket.on('robot_status', (data) => {
+        const statusElement = document.getElementById('robot-status');
+        if (data.connected) {
+            statusElement.textContent = '✅ Connected (' + data.port + ')';
+            statusElement.style.color = '#4CAF50';
+        } else {
+            statusElement.textContent = '❌ Not connected';
+            statusElement.style.color = '#f44336';
+        }
+    });
+
+    // Request initial status when connected
+    socket.on('connect', () => {
+        socket.emit('get_status', {});
+        addLog('✅ Connected to server');
+    });
+</script>
+{% endblock %}

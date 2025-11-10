@@ -1,32 +1,56 @@
 import cv2
 import streamlit as st
 from PIL import Image
+from typing import List, Dict, Optional, Tuple
+import numpy as np
+import os
 
 # YOLO from ultralytics
 from ultralytics import YOLO
+
 
 class CameraManager:
     """
     Manages camera discovery, opening, and retrieving frames.
     """
 
-    def __init__(self):
-        self.cameras = self._list_active_cameras()
-        self.caps = {}  # store cv2.VideoCapture objects
+    def __init__(self) -> None:
+        self.cameras: List[int] = self._list_active_cameras()
+        self.caps: Dict[int, cv2.VideoCapture] = {}  # store cv2.VideoCapture objects
 
-    def _list_active_cameras(self, max_test=10):
+    def _list_active_cameras(self, max_test: int = 10) -> List[int]:
         """
         Check up to `max_test` indices, return those that are active.
+        Suppresses OpenCV warnings during camera scanning.
         """
-        active = []
-        for i in range(max_test):
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                active.append(i)
-                cap.release()
+        active: List[int] = []
+
+        # Suppress OpenCV warnings during camera scanning
+        old_opencv_log = os.environ.get('OPENCV_LOG_LEVEL', None)
+        os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
+
+        try:
+            for i in range(max_test):
+                cap = cv2.VideoCapture(i, cv2.CAP_V4L2)  # Use V4L2 backend explicitly
+                if cap.isOpened():
+                    active.append(i)
+                    cap.release()
+        finally:
+            # Restore original log level
+            if old_opencv_log is not None:
+                os.environ['OPENCV_LOG_LEVEL'] = old_opencv_log
+            else:
+                os.environ.pop('OPENCV_LOG_LEVEL', None)
+
         return active
 
-    def open_capture(self, camera_index):
+    def get_active_cameras(self) -> List[int]:
+        """
+        Return list of active camera indices.
+        """
+        return self.cameras
+
+    def open_capture(self, camera_index: int) -> None:
         """
         Open a VideoCapture for a given camera index.
         """
@@ -34,7 +58,7 @@ class CameraManager:
             cap = cv2.VideoCapture(camera_index)
             self.caps[camera_index] = cap
 
-    def get_frame(self, camera_index):
+    def get_frame(self, camera_index: int) -> Optional[np.ndarray]:
         """
         Return the latest frame from the specified camera index (BGR format).
         If the camera is not open or fails to read, return None.
@@ -50,16 +74,17 @@ class YOLOModel:
     Loads a YOLO model (e.g. YOLOv8) and provides an inference method.
     """
 
-    def __init__(self, model_path="yolov8n.pt", device='cpu', score_thr=0.3):
+    def __init__(self, model_path: str = "yolov8n.pt", device: str = 'cpu', score_thr: float = 0.3) -> None:
         """
         :param model_path: Path to your YOLOv8 model weights (trained on COCO, or any).
         :param device: 'cpu' or 'cuda' for GPU. (e.g. "cuda" or "cuda:0")
         :param score_thr: Confidence threshold for filtering predictions.
         """
-        self.model = YOLO(model_path)
-        self.score_thr = score_thr
+        self.model: YOLO = YOLO(model_path)
+        self.score_thr: float = score_thr
+        self.device: str = device
 
-    def run_inference(self, bgr_image):
+    def run_inference(self, bgr_image: np.ndarray) -> np.ndarray:
         """
         Run inference on a BGR image, return the annotated BGR image.
         """
@@ -77,14 +102,18 @@ class YOLOModel:
                     cv2.putText(bgr_image, f'{class_name} {box.conf[0]:.2f}', (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, colour, 2)
         return bgr_image
 
-    def get_colours(self, cls_num):
+    def get_colours(self, cls_num: int) -> Tuple[int, int, int]:
+        """
+        Generate a unique color for each class based on class number.
+        """
         base_colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
         color_index = cls_num % len(base_colors)
         increments = [(1, -2, 1), (-2, 1, -1), (1, -1, 2)]
         color = [base_colors[color_index][i] + increments[color_index][i] * (cls_num // len(base_colors)) % 256 for i in range(3)]
         return tuple(color)
 
-def get_annotated_frame(camera_idx, camera_manager, detection_model):
+
+def get_annotated_frame(camera_idx: int, camera_manager: CameraManager, detection_model: YOLOModel) -> Optional[Image.Image]:
     """
     Helper function that reads a frame from `camera_manager`, runs detection using `detection_model`,
     and returns a PIL Image (RGB) with bounding box annotations.

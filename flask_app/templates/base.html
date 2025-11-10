@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Robot Arm Control{% endblock %}</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- Fabric.js for canvas drawing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="robot-icon">🤖</span>
+                <span class="brand-text">Robot Arm Control</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="/hand-tracking" class="nav-link {% if request.endpoint == 'hand_tracking' %}active{% endif %}">Hand Tracking</a></li>
+                <li><a href="/drawing" class="nav-link {% if request.endpoint == 'drawing' %}active{% endif %}">Drawing</a></li>
+            </ul>
+            <div class="nav-status">
+                <div id="connection-status" class="status-indicator disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Robot Arm Control System v2.0 | Flask + WebSocket</p>
+    </footer>
+
+    <!-- Common JavaScript -->
+    <script src="{{ url_for('static', filename='js/socket_client.js') }}"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
